@@ -1,4 +1,8 @@
+
+
 .data
+
+array: .word 0:8
 
 string_ask: .asciiz "\nPlease enter your string: "
 
@@ -34,7 +38,7 @@ lbu $t4, buff($a0)   #loading value
 beq $t4, 10, HextoDec
 beq $t4, 0, HextoDec
 add $a0, $a0, 1
-add $s6, $s6, 1  
+
 
 #
 #Checking the character to see if it is in range
@@ -48,23 +52,39 @@ li $t7,58
 slt $t0,$t6,$t4    # Sets $t0=1 if 47 < $a2, otherwise $t0=0
 slt $t1,$t4,$t7    # Sets $t1=1 if $a2 < 58, otherwise $t1=0
 and  $t2, $t1, $t0    # Sets $t0=1 if $a1 < $a0 < $a2, otherwise $t0=0
+beq $t2, 0, HexCheck2
+add $s6, $s6, 1  
+add $a2, $t4, -48 
+jal StoreArray
+ 
 
+HexCheck2:
 li $t6,64
 li $t7,71
 slt $t0,$t6,$t4    # Sets $t0=1 if $a1 < $a0, otherwise $t0=0
 slt $t1,$t4,$t7    # Sets $t1=1 if $a0 < $a2, otherwise $t1=0
 and  $t3, $t1, $t0    # Sets $t0=1 if $a1 < $a0 < $a2, otherwise 				#$t0=0
-or $t2, $t2, $t3    
+beq $t3, 0, HexCheck3
+add $s6, $s6, 1  
+add $a2, $t4, -55  
+jal StoreArray
 
+
+HexCheck3:
+or $t2, $t2, $t3    
 li $t6,96
 li $t7,103
 slt $t0,$t6,$t4    # Sets $t0=1 if $a1 < $a0, otherwise $t0=0
 slt $t1,$t4,$t7    # Sets $t1=1 if $a0 < $a2, otherwise $t1=0
 and  $t0, $t1, $t0    # Sets $t0=1 if $a1 < $a0 < $a2, otherwise $t0=0
-or $t2, $t2, $t0    
+beq $t0, 0, WhiteSpaces
+add $s6, $s6, 1  
+add $a2, $t4, -87
+jal StoreArray  
 
 
 WhiteSpaces:
+or $t2, $t2, $t0    
 move $a3, $a0
 move $t7, $t4
 li $t6,32
@@ -114,7 +134,12 @@ syscall
 li $v0,10
 syscall
 
-
+StoreArray:
+la $s0, array   # load the address of the array into $a1
+#lb $a2, 0($s0)           # load a byte from the array into $a2
+sb $a2, 0($s0)           # store the new value into memory
+addi $s0, $s0, 1         # increment $a1 by one, to point to the next element in the array
+jr $ra
 
 done:
 #output decimal number to console
@@ -130,6 +155,3 @@ li $v0,4
 syscall
 li $v0,10
 syscall
-
-
-
