@@ -6,7 +6,7 @@ string_return: .asciiz "\nResult: "
 
 string_invalid: .asciiz "\nInvalid hexadecimal number."
 
-in_name: .space 8 # space for input string
+buff: .space 8 # space for input string
 
 
 .text
@@ -19,18 +19,31 @@ main:
   li $v0,4
   syscall
 
-  la $a0,in_name # read the input string
-  li $a1,8 # at most 30 chars + 1 null char
+  la $a0,buff# read the input string
+  li $a1,9 # at most 30 chars + 1 null char
   li $v0,8
   syscall
 
 xor $a0, $a0, $a0
-search:  
-  lbu $a2, in_name($a0)
+
+strLen:                 #getting length of string
+lbu $t0, buff($a0)   #loading value
+add $a0, $a0, 1
+bne $t0, $zero, strLen
+
+
+add $s5, $s5, $a0
+
+
+SpaceCheck:  
+  lbu $a2, buff($a0)
 
 #
 #Checking the character to see if it is in range
 #
+
+HexCheck:
+xor $t0, $t0, $t0
 
 li $t6,47
 li $t7,58
