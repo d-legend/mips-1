@@ -105,11 +105,11 @@ j LoopBuff
 	Else2:
 	bne $t7, 10, Else3
 		li $t8, 0 
-		j WhiteSpaces
+		j WhiteSpaces	#j if return char
 Else3:
 		bne $t7, 0, Invalid
 		li $t8, 0 
-		j WhiteSpaces
+		j WhiteSpaces	#j if null char
 
 #
 #End program function that checks for empty input
@@ -117,25 +117,39 @@ Else3:
 
 Done:
 blez $s6, Invalid  # b Invalid on hitting enter first
-la $a0, 0($s3) # end of prog
-li $v0,1
+li $s2, 10
+bgez  $s3, b1
+divu  $s3, $s2
+mfhi $t1
+mflo $t2
+move $a0, $t2 # address of decimal
+li $v0,1	#print integer
 syscall
-li $v0, 10
+move $a0, $t1 # address of decimal
+li $v0,1	#print integer
 syscall
+li $v0, 10	#exit
+syscall	
+b1:
+la $a0, 0($s3) # address of decimal
+li $v0,1	#print integer
+syscall
+li $v0, 10	#exit
+syscall	
 
 #
 #Compute Decimal Equivalent
 #
 
 DecCalc:
-bge $s6, 2, cont
+bge $s6, 2, cont	#if there is more than 2 chars bbranch to cont
 add $s3, $s3, $a2
 li $t8, 1
-beq $s6, 1, Loop1
+beq $s6, 1, Loop1	#b to loop1 if there is only one char
 cont:
-sll $s3, $s3, 4
-add $s3, $s3, $a2
-jr $ra
+sll $s3, $s3, 4	#shift the value left 4 bits
+add $s3, $s3, $a2	#add the bext value to the previous register
+jr $ra     #j to return address
 
 #
 #Output if the string is not hex
@@ -143,8 +157,8 @@ jr $ra
 
 Invalid:
 	
-la $a0,string_invalid # print error string
-li $v0,4
+la $a0,string_invalid 
+li $v0,4	#print error output
 syscall
-li $v0,10
+li $v0,10	#exit
 syscall
