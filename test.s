@@ -2,18 +2,9 @@
 
 .data
 
-array: .word 0:8
-
-string_ask: .asciiz "\nPlease enter your string: "
-
-string_return: .asciiz "\nResult: "
-
-string_done: .asciiz "\nDone."
-
-string_invalid: .asciiz "\nInvalid hexadecimal number."
+string_invalid: .asciiz "Invalid hexadecimal number."
 
 buff: .space 9 # space for input string
-
 
 .text
 
@@ -21,24 +12,19 @@ buff: .space 9 # space for input string
 
 main:
 
-la $a0,string_ask # print prompt string
-li $v0,4
-syscall
-
-la $a0,buff# read the input string
+la $a0,buff# input string address
 li $a1,9 # at most 30 chars + 1 null char
-li $v0,8
+li $v0,8 #read string
 syscall
 
-xor $a0, $a0, $a0
+xor $a0, $a0, $a0	#zero out register
 
-strLen:                 #getting length of string
+Loop1:                 #getting length of string
 
-lbu $t4, buff($a0)   #loading value
-beq $t4, 10, HextoDec
-beq $t4, 0, HextoDec
-add $a0, $a0, 1
-
+lbu $t4, buff($a0)   #loading each byte of string
+beq $t4, 10, Done   #b if there is a return character
+beq $t4, 0, Done    #b if there is a null character
+add $a0, $a0, 1   #increment address
 
 #
 #Checking the character to see if it is in range
@@ -49,39 +35,42 @@ move $t2, $zero
 
 li $t6,47
 li $t7,58
-slt $t0,$t6,$t4    # Sets $t0=1 if 47 < $a2, otherwise $t0=0
-slt $t1,$t4,$t7    # Sets $t1=1 if $a2 < 58, otherwise $t1=0
-and  $t2, $t1, $t0    # Sets $t0=1 if $a1 < $a0 < $a2, otherwise $t0=0
+slt $t0,$t6,$t4    # Sets $t0=1 if $t6 < $t4, otherwise $t0=0
+slt $t1,$t4,$t7    # Sets $t1=1 if $t4 < $t7, otherwise $t1=0
+and  $t2, $t1, $t0    # Sets $t0=1 if $t6 < $t4 < $t7, otherwise $t0=0
 beq $t2, 0, HexCheck2
 add $s6, $s6, 1  
 add $a2, $t4, -48 
-jal StoreArray
+jal DecCalc
  
 
 HexCheck2:
 li $t6,64
 li $t7,71
-slt $t0,$t6,$t4    # Sets $t0=1 if $a1 < $a0, otherwise $t0=0
-slt $t1,$t4,$t7    # Sets $t1=1 if $a0 < $a2, otherwise $t1=0
-and  $t3, $t1, $t0    # Sets $t0=1 if $a1 < $a0 < $a2, otherwise 				#$t0=0
+slt $t0,$t6,$t4    # Sets $t0=1 if $t6 < $t4, otherwise $t0=0
+slt $t1,$t4,$t7    # Sets $t1=1 if $t4 < $t7, otherwise $t1=0
+and  $t3, $t1, $t0    # Sets $t0=1 if $t6 < $t4 < $t7, otherwise 				#$t0=0
 beq $t3, 0, HexCheck3
 add $s6, $s6, 1  
 add $a2, $t4, -55  
-jal StoreArray
+jal DecCalc
 
 
 HexCheck3:
 or $t2, $t2, $t3    
 li $t6,96
 li $t7,103
-slt $t0,$t6,$t4    # Sets $t0=1 if $a1 < $a0, otherwise $t0=0
-slt $t1,$t4,$t7    # Sets $t1=1 if $a0 < $a2, otherwise $t1=0
-and  $t0, $t1, $t0    # Sets $t0=1 if $a1 < $a0 < $a2, otherwise $t0=0
+slt $t0,$t6,$t4    # Sets $t0=1 if $t6 < $t4, otherwise $t0=0
+slt $t1,$t4,$t7    # Sets $t1=1 if $t4 < $t7, otherwise $t1=0
+and  $t0, $t1, $t0    # Sets $t0=1 if $t6 < $t4 < $t7, otherwise $t0=0
 beq $t0, 0, WhiteSpaces
 add $s6, $s6, 1  
 add $a2, $t4, -87
-jal StoreArray  
+jal DecCalc  
 
+#
+#Ignoring white spaces
+#
 
 WhiteSpaces:
 or $t2, $t2, $t0    
@@ -99,9 +88,9 @@ Else:
 	li $t8, 1 	#Assign 1 if you see a char
 Exit:
 	
-beq $t2, $zero, Invalid #branch to invalid if the character is not valid
+beq $t2, $zero, Invalid #b to invalid if the character is not valid
 
-j strLen
+j Loop1
 
 #
 #After there is a character and then a space iterate further to #see if another character shows up and mark invalid if it is so
@@ -123,29 +112,33 @@ Else3:
 		j WhiteSpaces
 
 #
-#Hexadecimal to Decimal Conversion
+#End program function that checks for empty input
 #
 
-HextoDec:
-	blez $s6, Invalid  # jump Invalid on hitting enter first
-la $a0,string_done # end of prog
-li $v0,4
+Done:
+blez $s6, Invalid  # b Invalid on hitting enter first
+la $a0, 0($s3) # end of prog
+li $v0,1
 syscall
-li $v0,10
+li $v0, 10
 syscall
 
-StoreArray:
-la $s0, array   # load the address of the array into $a1
-#lb $a2, 0($s0)           # load a byte from the array into $a2
-sb $a2, 0($s0)           # store the new value into memory
-addi $s0, $s0, 1         # increment $a1 by one, to point to the next element in the array
+#
+#Compute Decimal Equivalent
+#
+
+DecCalc:
+bge $s6, 2, cont
+add $s3, $s3, $a2
+li $t8, 1
+beq $s6, 1, Loop1
+cont:
+sll $s3, $s3, 4
+add $s3, $s3, $a2
 jr $ra
 
-done:
-#output decimal number to console
-
 #
-#Output if the number is not hex
+#Output if the string is not hex
 #
 
 Invalid:
